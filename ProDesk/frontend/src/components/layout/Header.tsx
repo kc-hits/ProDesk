@@ -12,9 +12,9 @@ function Header() {
         </Link>
 
         <nav className="flex items-center gap-8 text-sm text-zinc-300">
-          <Link to="/">خانه</Link>
-          <Link to="/beats">بیت‌ها</Link>
-          <Link to="/producers">پرودیوسرها</Link>
+          <Link to="/">Home</Link>
+          <Link to="/beats">beats</Link>
+          <Link to="/producers">produsers</Link>
         </nav>
 
         <div className="flex items-center gap-5">
