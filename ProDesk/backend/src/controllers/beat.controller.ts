@@ -329,7 +329,11 @@ export const getBeatsController = async (req: Request, res: Response) => {
           b.preview_audio_url,
           b.status,
           b.created_at,
-
+(
+  SELECT COUNT(*)::int
+  FROM favorites f
+  WHERE f.beat_id = b.id
+) AS favorite_count,
           COALESCE(
             NULLIF(p.producer_name, ''),
             u.full_name

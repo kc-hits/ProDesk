@@ -156,3 +156,59 @@ export const loginUser = async (email: string, password: string) => {
     token,
   };
 };
+
+export const changeUserPassword = async (
+  userId: string,
+  currentPassword: string,
+  newPassword: string,
+) => {
+  // 1. Find user's current password hash
+  const result = await pool.query(
+    `SELECT password_hash
+     FROM users
+     WHERE id = $1`,
+    [userId],
+  );
+
+  if (result.rows.length === 0) {
+    throw new Error("USER_NOT_FOUND");
+  }
+
+  const user = result.rows[0];
+
+  // 2. Verify current password
+  const isPasswordValid = await bcrypt.compare(
+    currentPassword,
+    user.password_hash,
+  );
+
+  if (!isPasswordValid) {
+    throw new Error("INVALID_CURRENT_PASSWORD");
+  }
+
+  // 3. Check that new password is different
+  const isSamePassword = await bcrypt.compare(
+    newPassword,
+    user.password_hash,
+  );
+
+  if (isSamePassword) {
+    throw new Error("SAME_PASSWORD");
+  }
+
+  // 4. Hash new password
+  const newPasswordHash = await bcrypt.hash(newPassword, 12);
+
+  // 5. Update password
+  await pool.query(
+    `UPDATE users
+     SET password_hash = $1,
+         updated_at = NOW()
+     WHERE id = $2`,
+    [newPasswordHash, userId],
+  );
+
+  return {
+    message: "رمز عبور با موفقیت تغییر کرد.",
+  };
+};

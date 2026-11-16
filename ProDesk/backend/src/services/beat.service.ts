@@ -136,7 +136,11 @@ export const getPublishedBeats = async () => {
         b.cover_image_url,
         b.preview_audio_url,
         b.created_at,
-
+        (
+        SELECT COUNT(*)::int        
+        FROM favorites f
+        WHERE f.beat_id = b.id
+        ) AS favorite_count,
         g.name AS genre_name,
         sg.name AS subgenre_name,
 
@@ -217,7 +221,11 @@ export const getBeatById = async (beatId: string) => {
         b.preview_audio_url,
         b.status,
         b.created_at,
-
+        (
+        SELECT COUNT(*)::int  
+        FROM favorites f
+        WHERE f.beat_id = b.id
+        ) AS favorite_count,
         COALESCE(
           NULLIF(p.producer_name, ''),
           u.full_name
@@ -708,10 +716,7 @@ export const getBeatForUpdate = async (beatId: string, producerId: string) => {
 
   return result.rows[0] ?? null;
 };
-export const unpublishBeat = async (
-  beatId: string,
-  producerId: string,
-) => {
+export const unpublishBeat = async (beatId: string, producerId: string) => {
   const client = await pool.connect();
 
   try {
