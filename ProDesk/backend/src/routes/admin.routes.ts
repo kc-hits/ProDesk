@@ -10,6 +10,8 @@ import {
   getAllUsersController,
   updateUserStatusController,
   getAllBeatsController,
+  getAllReviewReportsController,
+  updateReviewReportStatusController,
 } from "../controllers/admin.controller.js";
 const router = Router();
 
@@ -19,4 +21,11 @@ router.patch("/users/:userId/status", updateUserStatusController);
 router.get("/dashboard", getAdminDashboardController);
 router.get("/users", getAllUsersController);
 router.get("/beats", getAllBeatsController);
+// Review reports
+router.get("/reports", getAllReviewReportsController);
+
+router.patch(
+  "/reports/:reportId",
+  updateReviewReportStatusController,
+);
 export default router;

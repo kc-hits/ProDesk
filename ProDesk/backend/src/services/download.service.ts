@@ -186,3 +186,66 @@ export const getCustomOrderDownloadFile = async (
     fileName: `custom-order-${customOrderId}${fileExtension}`,
   };
 };
+
+export const getPurchasedBeats = async (artistId: string) => {
+  const result = await pool.query(
+    `
+      SELECT
+        dp.id AS download_permission_id,
+        oi.id AS order_item_id,
+        oi.beat_id,
+        oi.beat_title,
+        oi.producer_name,
+        oi.license_name,
+        oi.unit_price,
+        o.currency,
+        dp.download_count,
+        dp.max_downloads,
+        dp.expires_at,
+        dp.created_at AS purchased_at,
+
+        CASE
+          WHEN dp.revoked_at IS NOT NULL THEN FALSE
+
+          WHEN dp.expires_at IS NOT NULL
+            AND dp.expires_at <= NOW()
+            THEN FALSE
+
+          WHEN dp.max_downloads IS NOT NULL
+            AND dp.download_count >= dp.max_downloads
+            THEN FALSE
+
+          WHEN oi.original_audio_storage_key IS NULL
+            THEN FALSE
+
+          ELSE TRUE
+        END AS can_download
+
+      FROM download_permissions dp
+
+      JOIN order_items oi
+        ON oi.id = dp.order_item_id
+
+      JOIN orders o
+        ON o.id = oi.order_id
+
+      WHERE
+        dp.artist_id = $1
+        AND o.artist_id = $1
+        AND o.status = 'completed'
+
+        AND EXISTS (
+          SELECT 1
+          FROM payments p
+          WHERE p.order_id = o.id
+            AND p.artist_id = o.artist_id
+            AND p.status = 'successful'
+        )
+
+      ORDER BY dp.created_at DESC
+    `,
+    [artistId],
+  );
+
+  return result.rows;
+};

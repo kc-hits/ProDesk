@@ -134,3 +134,82 @@ export const getAllBeats = async () => {
 
   return result.rows;
 };
+ // Get all review reports
+export const getAllReviewReports = async () => {
+  const result = await pool.query(
+    `
+      SELECT
+        rr.id,
+        rr.review_id,
+        rr.producer_id,
+        rr.reason,
+        rr.description,
+        rr.status,
+        rr.admin_note,
+        rr.created_at,
+        rr.reviewed_at,
+
+        r.comment,
+        r.rating,
+        r.status AS review_status,
+
+        b.id AS beat_id,
+        b.title AS beat_title,
+
+        artist.id AS artist_id,
+        artist.full_name AS artist_name,
+        artist.status AS artist_status,
+
+        producer.full_name AS producer_name
+
+      FROM review_reports rr
+
+      INNER JOIN reviews r
+        ON r.id = rr.review_id
+
+      INNER JOIN beats b
+        ON b.id = r.beat_id
+
+      INNER JOIN users artist
+        ON artist.id = r.artist_id
+
+      INNER JOIN users producer
+        ON producer.id = rr.producer_id
+
+      ORDER BY
+        CASE
+          WHEN rr.status = 'pending' THEN 0
+          ELSE 1
+        END,
+        rr.created_at DESC
+    `,
+  );
+
+  return result.rows;
+};
+
+// Review report status
+export type ReviewReportStatus = "approved" | "rejected";
+
+// Update review report status
+export const updateReviewReportStatus = async (
+  reportId: string,
+  status: ReviewReportStatus,
+  adminNote: string | null,
+) => {
+  const result = await pool.query(
+    `
+      UPDATE review_reports
+      SET
+        status = $1,
+        admin_note = $2,
+        reviewed_at = NOW()
+      WHERE id = $3
+        AND status = 'pending'
+      RETURNING *
+    `,
+    [status, adminNote, reportId],
+  );
+
+  return result.rows[0] ?? null;
+};

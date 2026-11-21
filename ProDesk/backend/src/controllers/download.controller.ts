@@ -3,7 +3,8 @@ import { access } from "node:fs/promises";
 import {
   getDownloadFile,
   releaseDownloadAttempt,
-  getCustomOrderDownloadFile
+  getCustomOrderDownloadFile,
+  getPurchasedBeats
 } from "../services/download.service.js";
 
 export const downloadBeatController = async (
@@ -118,6 +119,25 @@ export const downloadCustomOrderController = async (
           message: "File download failed.",
         });
       }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getPurchasedBeatsController = async (
+  _req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const artistId = res.locals.auth.userId;
+
+    const beats = await getPurchasedBeats(artistId);
+
+    res.status(200).json({
+      message: "Purchased beats retrieved successfully.",
+      beats,
     });
   } catch (error) {
     next(error);

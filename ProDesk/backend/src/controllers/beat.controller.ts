@@ -310,6 +310,7 @@ export const createBeatController = async (req: Request, res: Response) => {
   }
 };
 
+
 export const getBeatsController = async (req: Request, res: Response) => {
   try {
     const result = await pool.query(
@@ -329,11 +330,13 @@ export const getBeatsController = async (req: Request, res: Response) => {
           b.preview_audio_url,
           b.status,
           b.created_at,
-(
-  SELECT COUNT(*)::int
-  FROM favorites f
-  WHERE f.beat_id = b.id
-) AS favorite_count,
+
+          (
+            SELECT COUNT(*)::int
+            FROM favorites f
+            WHERE f.beat_id = b.id
+          ) AS favorite_count,
+
           COALESCE(
             NULLIF(p.producer_name, ''),
             u.full_name
@@ -366,13 +369,14 @@ export const getBeatsController = async (req: Request, res: Response) => {
                   'distribution_limit', bl.distribution_limit,
                   'allows_commercial_use', bl.allows_commercial_use,
                   'allows_content_id', bl.allows_content_id,
-                  'is_exclusive', bl.is_exclusive
+                  'is_exclusive', LOWER(TRIM(l.name)) = 'exclusive'
                 )
               )
               FROM beat_licenses bl
               JOIN licenses l ON l.id = bl.license_id
               WHERE bl.beat_id = b.id
                 AND bl.is_available = TRUE
+                AND LOWER(TRIM(l.name)) IN ('basic', 'exclusive')
             ),
             '[]'::json
           ) AS licenses
@@ -384,6 +388,15 @@ export const getBeatsController = async (req: Request, res: Response) => {
         JOIN users u ON u.id = b.producer_id
 
         WHERE b.status = 'published'
+          AND u.status = 'active'
+          AND EXISTS (
+            SELECT 1
+            FROM beat_licenses bl
+            JOIN licenses l ON l.id = bl.license_id
+            WHERE bl.beat_id = b.id
+              AND bl.is_available = TRUE
+              AND LOWER(TRIM(l.name)) IN ('basic', 'exclusive')
+          )
 
         ORDER BY b.created_at DESC
       `,

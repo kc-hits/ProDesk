@@ -5,6 +5,9 @@ import {
   getAllUsers,
   updateUserStatus,
   getAllBeats,
+  getAllReviewReports,
+  updateReviewReportStatus,
+  type ReviewReportStatus,
 } from "../services/admin.service.js";
 export const getAdminDashboardController = async (
   _req: Request,
@@ -97,10 +100,7 @@ export const updateUserStatusController = async (
     });
   }
 };
-export const getAllBeatsController = async (
-  _req: Request,
-  res: Response,
-) => {
+export const getAllBeatsController = async (_req: Request, res: Response) => {
   try {
     const beats = await getAllBeats();
 
@@ -114,6 +114,100 @@ export const getAllBeatsController = async (
     return res.status(500).json({
       success: false,
       message: "خطا در دریافت لیست بیت‌ها.",
+    });
+  }
+};
+
+export const getAllReviewReportsController = async (
+  _req: Request,
+  res: Response,
+) => {
+  try {
+    const reports = await getAllReviewReports();
+
+    return res.status(200).json({
+      success: true,
+      reports,
+    });
+  } catch (error) {
+    console.error("Get review reports error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "خطا در دریافت گزارش‌ها.",
+    });
+  }
+};
+
+export const updateReviewReportStatusController = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const reportId = String(req.params.reportId ?? "");
+    const { status, adminNote } = req.body;
+
+    if (!reportId) {
+      return res.status(400).json({
+        success: false,
+        message: "شناسه گزارش الزامی است.",
+      });
+    }
+
+    if (!["approved", "rejected"].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "وضعیت گزارش معتبر نیست.",
+      });
+    }
+
+    if (
+      adminNote !== undefined &&
+      adminNote !== null &&
+      typeof adminNote !== "string"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "یادداشت ادمین معتبر نیست.",
+      });
+    }
+
+    if (
+      typeof adminNote === "string" &&
+      adminNote.trim().length > 1000
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "یادداشت ادمین نباید بیشتر از ۱۰۰۰ کاراکتر باشد.",
+      });
+    }
+
+    const report = await updateReviewReportStatus(
+      reportId,
+      status as ReviewReportStatus,
+      typeof adminNote === "string"
+        ? adminNote.trim() || null
+        : null,
+    );
+
+    if (!report) {
+      return res.status(404).json({
+        success: false,
+        message: "گزارش پیدا نشد یا قبلاً بررسی شده است.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "وضعیت گزارش با موفقیت تغییر کرد.",
+      report,
+    });
+  } catch (error) {
+    console.error("Update review report status error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "خطا در بررسی گزارش.",
     });
   }
 };
